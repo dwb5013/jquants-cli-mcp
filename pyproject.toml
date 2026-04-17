@@ -1,6 +1,6 @@
 [project]
 name = "jquants-cli-mcp"
-version = "0.3.2"
+version = "0.4.0"
 description = "MCP server that runs the local jquants CLI and serves its version-matched skill"
 requires-python = ">=3.11"
 dependencies = [

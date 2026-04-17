@@ -126,19 +126,35 @@ def _install_skill() -> Path:
     return parent
 
 
+_INSTRUCTIONS = """\
+This server runs the local `jquants` CLI and serves its version-matched skill.
+
+HOW TO USE:
+1. FIRST call `get_skill_guide()` to load the full SKILL.md (command syntax,
+   plan gates, rate limits, schema rules). Also call `list_skill_references()`
+   then `read_skill_reference(name)` for deeper category-specific docs (eq, mkt,
+   deriv, fins, idx, bulk, plans, data-update-schedule).
+2. Use `jquants_schema(endpoint)` before `-f`/--fields to get exact PascalCase
+   field names.
+3. Run commands via `run_jquants(args=[...])`. Global options
+   (--output/--save/-f) MUST come before the subcommand (clap requirement).
+"""
+
+
 def _build_server() -> FastMCP:
     parent = _install_skill()
+    skill_dir = parent / _SKILL_NAME
     print(
-        f"[jquants-cli-mcp] skill: installed from CLI -> {parent / _SKILL_NAME}",
+        f"[jquants-cli-mcp] skill: installed from CLI -> {skill_dir}",
         file=sys.stderr,
     )
 
-    server: FastMCP = FastMCP("jquants-cli")
+    server: FastMCP = FastMCP("jquants-cli", instructions=_INSTRUCTIONS)
     # reload=True re-scans the skill tree on every resources/list request.
     # Keeps the provider robust to filesystem changes (e.g. CLI upgrade
     # rewriting SKILL.md in place) without requiring a server restart.
     server.add_provider(SkillsDirectoryProvider(roots=parent, reload=True))
-    _register_tools(server)
+    _register_tools(server, skill_dir)
     return server
 
 
@@ -207,7 +223,7 @@ async def _run(
     }
 
 
-def _register_tools(server: FastMCP) -> None:
+def _register_tools(server: FastMCP, skill_dir: Path) -> None:
     @server.tool()
     async def run_jquants(
         args: list[str],
@@ -216,10 +232,15 @@ def _register_tools(server: FastMCP) -> None:
     ) -> dict[str, Any]:
         """Run the local `jquants` CLI with the given argument list.
 
+        BEFORE your first call: load `get_skill_guide()` — it documents command
+        syntax rules, plan gates, schema lookup, and common pitfalls. For
+        category-specific docs (eq/mkt/deriv/fins/idx/bulk/plans) use
+        `list_skill_references()` + `read_skill_reference(name)`.
+
         Args:
             args: Arguments passed to jquants, split into a list. Do NOT include
                 the leading "jquants". Global options (--output/--save/-f) must
-                come BEFORE the subcommand.
+                come BEFORE the subcommand (clap requirement).
                 Example: ["--output", "csv", "--save", "out.csv",
                           "eq", "daily", "--code", "86970", "--from", "2026-01-01"]
             cwd: Working directory for the process. Relative `--save` paths
@@ -253,6 +274,54 @@ def _register_tools(server: FastMCP) -> None:
     async def jquants_version() -> dict[str, Any]:
         """Return the installed `jquants` CLI version string. Useful for sanity checks."""
         return await _run(args=["--version"], cwd=None, timeout_sec=10)
+
+    @server.tool()
+    def get_skill_guide() -> str:
+        """Return the main SKILL.md — command syntax rules, plan gates, schema
+        workflow, rate limits, data freshness, common pitfalls.
+
+        Call this FIRST before building any jquants command. The skill is
+        sourced from the local CLI (`jquants skills add`) so it always
+        matches the installed CLI version.
+
+        For category-specific deep-dives (eq/mkt/deriv/fins/idx/bulk flags,
+        plan availability, update schedule), use `list_skill_references()`
+        and `read_skill_reference(name)`.
+        """
+        return (skill_dir / "SKILL.md").read_text(encoding="utf-8")
+
+    @server.tool()
+    def list_skill_references() -> list[str]:
+        """List names of available reference files under the skill tree.
+
+        Each file drills into one subcommand category or cross-cutting topic.
+        Pass any returned name to `read_skill_reference()`.
+        """
+        refs = skill_dir / "references"
+        if not refs.exists():
+            return []
+        return sorted(p.name for p in refs.glob("*.md"))
+
+    @server.tool()
+    def read_skill_reference(name: str) -> str:
+        """Read one reference file from the skill tree.
+
+        Args:
+            name: Reference file name returned by `list_skill_references()`
+                (e.g. "commands-eq.md", "plans.md", "data-update-schedule.md").
+
+        Returns:
+            The full markdown content of the file.
+        """
+        target = skill_dir / "references" / name
+        if not target.is_file():
+            available = sorted(
+                p.name for p in (skill_dir / "references").glob("*.md")
+            ) if (skill_dir / "references").exists() else []
+            raise ValueError(
+                f"Reference {name!r} not found. Available: {available}"
+            )
+        return target.read_text(encoding="utf-8")
 
 
 mcp = _build_server()

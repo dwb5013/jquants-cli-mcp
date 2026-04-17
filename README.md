@@ -49,6 +49,16 @@ Run `/mcp` in Claude Code; you should see `jquants-cli` connected with three too
 
 ## Tools
 
+The server exposes three tools for CLI execution and three for reading the skill content. The skill tools exist because MCP clients that don't auto-load `skill://` resource URIs into LLM context (e.g. Claude Desktop Chat today) can still access command-syntax knowledge as regular tool calls.
+
+### `get_skill_guide()`
+
+Returns the full `SKILL.md` as text — command syntax rules, plan gates, schema rules, rate limits, data freshness, common pitfalls. **Call this first** before building jquants commands.
+
+### `list_skill_references()` / `read_skill_reference(name)`
+
+List and read category-specific reference files (`commands-eq.md`, `plans.md`, etc.). Use when `get_skill_guide()` points you to a deeper doc.
+
 ### `run_jquants(args, cwd?, timeout_sec?)`
 
 Generic entry point. Runs `jquants <args>` and returns structured output. Global options (`--output`, `--save`, `-f`) must come **before** the subcommand — this is a clap parser requirement on the CLI side.

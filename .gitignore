@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+dist/
+build/
+*.egg-info/
+
+# User-local Claude Code permission overrides — personal, not team config.
+.claude/settings.local.json
+
+# CLI regenerates this on every MCP startup; not a source artifact.
+jquants-cli-usage/

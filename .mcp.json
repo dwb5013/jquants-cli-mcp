@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "jquants-cli": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/Users/weibingding/git/jquants-cli-mcp",
+        "run",
+        "jquants-cli-mcp"
+      ]
+    }
+  }
+}

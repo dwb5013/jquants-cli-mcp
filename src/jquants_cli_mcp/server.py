@@ -134,7 +134,10 @@ def _build_server() -> FastMCP:
     )
 
     server: FastMCP = FastMCP("jquants-cli")
-    server.add_provider(SkillsDirectoryProvider(roots=parent))
+    # reload=True re-scans the skill tree on every resources/list request.
+    # Keeps the provider robust to filesystem changes (e.g. CLI upgrade
+    # rewriting SKILL.md in place) without requiring a server restart.
+    server.add_provider(SkillsDirectoryProvider(roots=parent, reload=True))
     _register_tools(server)
     return server
 

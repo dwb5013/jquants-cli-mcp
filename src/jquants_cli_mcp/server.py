@@ -57,15 +57,27 @@ def _fatal(reason: str, hint: str) -> NoReturn:
     sys.exit(1)
 
 
+def _default_parent_dir() -> Path:
+    """Writable location for the generated skill tree.
+
+    cwd is NOT a safe default: when this server is launched via
+    `uvx --from git+...` as an MCP, cwd is often `/` (read-only on macOS).
+    The user cache dir is always writable and conventional for generated
+    artifacts. Respects XDG_CACHE_HOME.
+    """
+    base = os.environ.get("XDG_CACHE_HOME")
+    root = Path(base) if base else Path.home() / ".cache"
+    return root / "jquants-cli-mcp"
+
+
 def _install_skill() -> Path:
     """Ask the local CLI to emit its version-matched skill, or exit.
 
     Returns the parent directory that contains `jquants-cli-usage/` — pass this
     to SkillsDirectoryProvider(roots=...). Any failure is fatal.
     """
-    parent = Path(
-        os.environ.get("JQUANTS_SKILLS_PARENT_DIR", os.getcwd())
-    ).expanduser().resolve()
+    override = os.environ.get("JQUANTS_SKILLS_PARENT_DIR")
+    parent = Path(override or _default_parent_dir()).expanduser().resolve()
     skill_dir = parent / _SKILL_NAME
 
     try:

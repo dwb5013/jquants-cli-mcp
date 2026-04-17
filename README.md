@@ -17,24 +17,35 @@ The `jquants-cli-usage` skill documents command syntax, flags, plan gates, and e
 
 ## Install
 
+Two options — pick one.
+
+### A. No-clone (recommended): register via `uvx` against git
+
+```sh
+claude mcp add -s user jquants-cli \
+  -- uvx --from git+https://github.com/dwb5013/jquants-cli-mcp jquants-cli-mcp
+```
+
+`uvx` pulls the latest commit from the default branch into an ephemeral environment and runs it. Re-run the command to bump to the newest version.
+
+### B. Clone for local development
+
 ```sh
 git clone https://github.com/dwb5013/jquants-cli-mcp.git
 cd jquants-cli-mcp
 uv sync
 ```
 
-## Register with Claude Code
-
-The repo ships with `.mcp.json` — Claude Code offers to load it when you open the directory. Approve the prompt and the server is available in that project.
-
-For **global** availability across all projects:
+The repo ships with a `.mcp.json` that Claude Code auto-discovers when you open the directory. Approve the prompt and the server is available in that project. For global availability:
 
 ```sh
 claude mcp add -s user jquants-cli \
   -- uv --directory /absolute/path/to/jquants-cli-mcp run jquants-cli-mcp
 ```
 
-Confirm with `/mcp`; you should see `jquants-cli` connected with three tools and the `skill://jquants-cli-usage/*` resources.
+## Verify
+
+Run `/mcp` in Claude Code; you should see `jquants-cli` connected with three tools and the `skill://jquants-cli-usage/*` resources.
 
 ## Tools
 
@@ -76,7 +87,7 @@ Clients that auto-load MCP resources pick up the skill without extra setup. Cont
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `JQUANTS_SKILLS_PARENT_DIR` | process cwd | Directory that will contain the generated `jquants-cli-usage/` folder. With the shipped `.mcp.json` this is the repo root. |
+| `JQUANTS_SKILLS_PARENT_DIR` | `$XDG_CACHE_HOME/jquants-cli-mcp` or `~/.cache/jquants-cli-mcp` | Directory that will contain the generated `jquants-cli-usage/` folder. Default is the user cache dir (writable in all install modes, including `uvx --from git+...` where cwd may be `/`). Set to `.` to keep it in the current dir. |
 
 J-Quants CLI env vars (`JQUANTS_API_KEY`, `JQUANTS_BASE_URL`) are honored transparently — the MCP server just forwards them.
 
